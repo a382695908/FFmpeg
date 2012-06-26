@@ -86,3 +86,7 @@
 /tools/seek_print
 /tools/uncoded_frame
 /tools/zmqsend
+# iOS script build files
+/fat
+/scratch
+/thin
