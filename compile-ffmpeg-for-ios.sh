@@ -49,6 +49,7 @@ make clean
     --enable-demuxer=m4v \
     --enable-muxer=mp4 \
     --enable-muxer=flv \
+    --enable-muxer=mpegts \
     --enable-demuxer=flv \
     --enable-parser=flv \
     --enable-librtmp \
@@ -57,6 +58,7 @@ make clean
     --enable-decoder=h264 \
     --enable-decoder=aac \
     --enable-decoder=svq3 \
+    --enable-bsf=h264_mp4toannexb \
     --enable-gpl \
     --enable-pic \
     --disable-doc
@@ -92,6 +94,7 @@ make clean
     --enable-demuxer=m4v \
     --enable-muxer=mp4 \
     --enable-muxer=flv \
+    --enable-muxer=mpegts \
     --enable-demuxer=flv \
     --enable-parser=flv \
     --enable-librtmp \
