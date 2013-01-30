@@ -2,7 +2,7 @@
 
 export PLATFORM="iPhoneOS"
 export MIN_VERSION="5.0"
-export MAX_VERSION="6.0"
+export MAX_VERSION="6.1"
 export DEVROOT=/Applications/Xcode.app/Contents/Developer/Platforms/${PLATFORM}.platform/Developer
 export SDKROOT=$DEVROOT/SDKs/${PLATFORM}${MAX_VERSION}.sdk
 export CC=$DEVROOT/usr/bin/llvm-gcc
