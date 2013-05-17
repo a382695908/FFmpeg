@@ -130,6 +130,6 @@ do
         -output ./build.universal/lib/$i.a
 done
 
+cp -a build.universal ../ffmpeg.build
 rm config.h
-
 
