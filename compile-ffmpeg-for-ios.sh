@@ -130,6 +130,14 @@ do
         -output ./build.universal/lib/$i.a
 done
 
-cp -a build.universal ../ffmpeg.build
+INSTALL_PATH="../ffmpeg.build"
+mkdir -p $INSTALL_PATH
+cp -a build.universal $INSTALL_PATH
+mkdir -p $INSTALL_PATH/include/i386
+cp -a build.i386/include $INSTALL_PATH/include/i386
+mkdir -p $INSTALL_PATH/include/armv7
+cp -a build.armv7/include $INSTALL_PATH/include/armv7
+mkdir -p $INSTALL_PATH/include/armv7s
+cp -a build.armv7s/include $INSTALL_PATH/include/armv7s
 rm config.h
 
