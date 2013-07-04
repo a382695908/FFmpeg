@@ -79,6 +79,8 @@
            Parametric Stereo.
  */
 
+#include "aacdec.h"
+
 #include "libavutil/float_dsp.h"
 #include "avcodec.h"
 #include "internal.h"
@@ -2642,6 +2644,82 @@ static int aac_decode_frame(AVCodecContext *avctx, void *data,
             break;
 
     return buf_size > buf_offset ? buf_consumed : buf_size;
+}
+
+int aac_decode_frame_int2(AVCodecContext *avctx, GetBitContext *gb)
+{
+    AACContext *ac = avctx->priv_data;
+    ChannelElement *che = NULL;
+    enum RawDataBlockType elem_type;
+    int err, elem_id;
+    int samples = 0, multiplier;
+
+    ac->tags_mapped = 0;
+    // parse
+    while ((elem_type = get_bits(gb, 3)) != TYPE_END) {
+        elem_id = get_bits(gb, 4);
+
+        if (elem_type < TYPE_DSE) {
+            if (!(che=get_che(ac, elem_type, elem_id))) {
+                av_log(ac->avctx, AV_LOG_ERROR, "channel element %d.%d is not allocated\n",
+                       elem_type, elem_id);
+                err = DVERROR_INVALID_PACKET;
+                goto fail;
+            }
+            samples = 1024;
+        }
+
+        switch (elem_type) {
+
+        case TYPE_SCE:
+            err = decode_ics(ac, &che->ch[0], gb, 0, 0);
+            break;
+
+        case TYPE_CPE:
+            err = decode_cpe(ac, gb, che);
+            break;
+
+        case TYPE_CCE:
+        case TYPE_LFE:
+        case TYPE_DSE:
+        case TYPE_PCE:
+        case TYPE_FIL:
+            err = DVERROR_INVALID_PACKET;
+            goto fail;
+
+        default:
+            err = -1; /* should not happen, but keeps compiler happy */
+            break;
+        }
+
+        if (err)
+            goto fail;
+
+        if (get_bits_left(gb) < 3) {
+            av_log(avctx, AV_LOG_ERROR, overread_err);
+            err = -1;
+            goto fail;
+        }
+    }
+
+    spectral_to_sample(ac);
+
+    multiplier = (ac->oc[1].m4ac.sbr == 1) ? ac->oc[1].m4ac.ext_sample_rate > ac->oc[1].m4ac.sample_rate : 0;
+    samples <<= multiplier;
+
+    if (samples) {
+        /* get output buffer */
+        ac->frame.nb_samples = samples;
+        if ((err = avctx->get_buffer(avctx, &ac->frame)) < 0) {
+            av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
+            err = DVERROR_INVALID_PACKET;
+            goto fail;
+        }
+    }
+    return 0;
+fail:
+    pop_output_configuration(ac);
+    return err;
 }
 
 static av_cold int aac_decode_close(AVCodecContext *avctx)
