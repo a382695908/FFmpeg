@@ -1,7 +1,7 @@
 #!/bin/sh
 
 export PLATFORM="iPhoneOS"
-export MIN_VERSION="5.0"
+export MIN_VERSION="6.0"
 export MAX_VERSION="6.1"
 export DEVROOT=/Applications/Xcode.app/Contents/Developer/Platforms/${PLATFORM}.platform/Developer
 export SDKROOT=$DEVROOT/SDKs/${PLATFORM}${MAX_VERSION}.sdk
@@ -132,7 +132,7 @@ done
 
 INSTALL_PATH="../ffmpeg.build"
 mkdir -p $INSTALL_PATH
-cp -a build.universal $INSTALL_PATH
+cp -a build.universal/* $INSTALL_PATH/
 mkdir -p $INSTALL_PATH/include/i386
 cp -a build.i386/include/* $INSTALL_PATH/include/i386/
 mkdir -p $INSTALL_PATH/include/armv7
