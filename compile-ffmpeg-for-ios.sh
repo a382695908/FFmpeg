@@ -16,6 +16,8 @@ export CXXCPP=$DEVROOT/usr/bin/cpp
 export RANLIB=$DEVROOT/usr/bin/ranlib
 
 COMMONFLAGS="-pipe -gdwarf-2 -no-cpp-precomp -isysroot ${SDKROOT} -marm"
+# debug
+COMMONFLAGS="$COMMONFLAGS -ggdb"
 export LDFLAGS="${COMMONFLAGS}"
 export CFLAGS="${COMMONFLAGS} -fvisibility=hidden"
 
@@ -34,6 +36,7 @@ FFMPEG_OPTIONS="
     --enable-demuxer=m4v \
     --enable-muxer=mp4 \
     --enable-muxer=mpegts \
+    --enable-demuxer=mpegts \
     --enable-protocol=file \
     --enable-protocol=pipelike \
     --enable-decoder=h264 \
@@ -48,25 +51,32 @@ FFMPEG_OPTIONS="
     --disable-ffplay \
     --disable-ffprobe \
     --disable-ffserver \
+\
+    --enable-logging \
+    --enable-debug=3 \
+    --disable-stripping \
+    --disable-optimizations \
+    --disable-asm \
+    --disable-pthreads \
 "
 
-echo "Building armv7..."
-
-make distclean
-./configure \
-    --cpu=cortex-a8 \
-    --extra-cflags="${CFLAGS} -arch armv7 -miphoneos-version-min=${MIN_VERSION} -mthumb" \
-    --extra-ldflags="${LDFLAGS} -arch armv7 -miphoneos-version-min=${MIN_VERSION}" \
-    --enable-cross-compile \
-    --arch=arm \
-    --target-os=darwin \
-    --cc=${CC} \
-    --sysroot=${SDKROOT} \
-    ${FFMPEG_OPTIONS} \
-    --prefix=build.armv7
-make -j4
-make install
-cp config.h build.armv7/include/
+#echo "Building armv7..."
+#
+#make distclean
+#./configure \
+#    --cpu=cortex-a8 \
+#    --extra-cflags="${CFLAGS} -arch armv7 -miphoneos-version-min=${MIN_VERSION} -mthumb" \
+#    --extra-ldflags="${LDFLAGS} -arch armv7 -miphoneos-version-min=${MIN_VERSION}" \
+#    --enable-cross-compile \
+#    --arch=arm \
+#    --target-os=darwin \
+#    --cc=${CC} \
+#    --sysroot=${SDKROOT} \
+#    ${FFMPEG_OPTIONS} \
+#    --prefix=build.armv7
+#make -j4
+#make install
+#cp config.h build.armv7/include/
 
 echo "Building armv7s..."
 
@@ -82,7 +92,7 @@ make distclean
     --sysroot=${SDKROOT} \
     ${FFMPEG_OPTIONS} \
     --prefix=build.armv7s
-make -j4
+make -j4 || exit 1
 make install
 cp config.h build.armv7s/include/
 
@@ -104,41 +114,43 @@ export LDFLAGS="${COMMONFLAGS}"
 export CFLAGS="${COMMONFLAGS} -fvisibility=hidden"
 export ASFLAGS="-arch i386"
 
-echo "Building i386..."
-
-make distclean
-./configure \
-    --cpu=i386 \
-    --extra-cflags="${CFLAGS} -arch i386 -miphoneos-version-min=${MIN_VERSION}" \
-    --extra-ldflags="${LDFLAGS} -arch i386 -miphoneos-version-min=${MIN_VERSION}" \
-    --enable-cross-compile \
-    --arch=x86 \
-    --target-os=darwin \
-    --cc=${CC} \
-    --sysroot=${SDKROOT} \
-    ${FFMPEG_OPTIONS} \
-    --prefix=build.i386
-make -j4
-make install
-cp config.h build.i386/include/
+#echo "Building i386..."
+#
+#make distclean
+#./configure \
+#    --cpu=i386 \
+#    --extra-cflags="${CFLAGS} -arch i386 -miphoneos-version-min=${MIN_VERSION}" \
+#    --extra-ldflags="${LDFLAGS} -arch i386 -miphoneos-version-min=${MIN_VERSION}" \
+#    --enable-cross-compile \
+#    --arch=x86 \
+#    --target-os=darwin \
+#    --cc=${CC} \
+#    --sysroot=${SDKROOT} \
+#    ${FFMPEG_OPTIONS} \
+#    --prefix=build.i386
+#make -j4
+#make install
+#cp config.h build.i386/include/
 
 echo "Making universal libs..."
 
 mkdir -p build.universal/lib
 for i in ${FFMPEG_LIBS}
 do
-    lipo -create ./build.armv7/lib/$i.a ./build.armv7s/lib/$i.a ./build.i386/lib/$i.a \
+    lipo -create ./build.armv7s/lib/$i.a \
         -output ./build.universal/lib/$i.a
 done
 
 INSTALL_PATH="../ffmpeg.build"
+# debug
+INSTALL_PATH="../ffmpeg.debug"
 mkdir -p $INSTALL_PATH
 cp -a build.universal/* $INSTALL_PATH/
-mkdir -p $INSTALL_PATH/include/i386
-cp -a build.i386/include/* $INSTALL_PATH/include/i386/
-mkdir -p $INSTALL_PATH/include/armv7
-cp -a build.armv7/include/* $INSTALL_PATH/include/armv7/
+#mkdir -p $INSTALL_PATH/include/i386
+#cp -a build.i386/include/* $INSTALL_PATH/include/i386/
+#mkdir -p $INSTALL_PATH/include/armv7
+#cp -a build.armv7/include/* $INSTALL_PATH/include/armv7/
 mkdir -p $INSTALL_PATH/include/armv7s
 cp -a build.armv7s/include/* $INSTALL_PATH/include/armv7s/
-rm config.h
+#rm config.h
 
