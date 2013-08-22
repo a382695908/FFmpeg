@@ -279,6 +279,7 @@ void av_register_all(void)
     REGISTER_PROTOCOL (FFRTMPCRYPT, ffrtmpcrypt);
     REGISTER_PROTOCOL (FFRTMPHTTP, ffrtmphttp);
     REGISTER_PROTOCOL (FILE, file);
+    REGISTER_PROTOCOL (PIPELIKE, pipelike);
     REGISTER_PROTOCOL (GOPHER, gopher);
     REGISTER_PROTOCOL (HLS, hls);
     REGISTER_PROTOCOL (HTTP, http);
