@@ -35,6 +35,7 @@ FFMPEG_OPTIONS="
     --enable-muxer=mp4 \
     --enable-muxer=mpegts \
     --enable-protocol=file \
+    --enable-protocol=pipelike \
     --enable-decoder=h264 \
     --enable-decoder=aac \
     --enable-decoder=svq3 \
