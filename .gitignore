@@ -58,6 +58,6 @@
 /tools/probetest
 /tools/qt-faststart
 /tools/trasher
-/build.*
+/build
 /installed
 /tags
