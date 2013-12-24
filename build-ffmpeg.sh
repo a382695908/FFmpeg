@@ -1,24 +1,28 @@
-#!/bin/bash
+#!/bin/sh
 
-###########################################################################
-#  Choose your ffmpeg version and your currently-installed iOS SDK version:
-#
-SDKVERSION="7.0"
-FFMPEG_CONFIG=" \
+CONFIGURE_FLAGS=" \
+    --enable-cross-compile \
+    --disable-debug \
+    --disable-ffmpeg \
+    --disable-ffplay \
+    --disable-ffprobe \
+    --disable-ffserver \
+    --disable-doc \
+    --disable-encoders \
+    --disable-muxers \
+    --disable-bsfs \
+    --disable-devices \
+    --disable-filters \
     --disable-bzlib \
     --disable-avresample \
     --disable-decoders \
     --disable-protocols \
-    --disable-muxers \
     --disable-demuxers \
-    --disable-devices \
     --disable-parsers \
-    --disable-encoders \
-    --disable-filters \
-    --disable-bsfs \
     --disable-avfilter \
     --disable-postproc \
     --disable-swresample \
+    --disable-swscale \
     --enable-demuxer=mov \
     --enable-demuxer=m4v \
     --enable-muxer=mp4 \
@@ -31,95 +35,125 @@ FFMPEG_CONFIG=" \
     --enable-bsf=h264_mp4toannexb \
     --enable-gpl \
     --enable-pic \
-    --disable-doc \
-    --disable-swscale \
-    --disable-ffmpeg \
-    --disable-ffplay \
-    --disable-ffprobe \
-    --disable-ffserver \
 "
-#
-#
-###########################################################################
-#
-# Don't change anything under this line!
-#
-###########################################################################
 
-# No need to change this since xcode build will only compile in the
-# necessary bits from the libraries we create
-ARCHS="armv7 armv7s i386"
+ARCHS="armv7 armv7s i386 arm64 x86_64"
 
-DEVELOPER=`xcode-select -print-path`
+# directories
+SOURCE="."
+FAT="fat"
 
-cd "`dirname \"$0\"`"
-REPOROOT="."
-ABSREPOROOT=$(pwd)
+SCRATCH="scratch"
+# must be an absolute path
+THIN=`pwd`/"thin"
 
-# Where we'll end up storing things in the end
-OUTPUTDIR="${REPOROOT}/../ffmpeg.build"
-mkdir -p ${OUTPUTDIR}/include
-mkdir -p ${OUTPUTDIR}/lib
-mkdir -p ${OUTPUTDIR}/bin
+COMPILE="y"
+LIPO="y"
 
-
-# where we will keep our sources and build from.
-SRCDIR="${REPOROOT}"
-mkdir -p $SRCDIR
-# where we will store intermediary builds
-INTERDIR="${REPOROOT}/build"
-
-########################################
-
-cd $SRCDIR
-
-# Exit the script if an error happens
-set -e
-
-for ARCH in ${ARCHS}
-do
-	if [ "${ARCH}" == "i386" ];
+if [ "$*" ]
+then
+	if [ "$*" = "lipo" ]
 	then
-		PLATFORM="iPhoneSimulator"
-        EXTRA_CONFIG="--arch=i386 --disable-asm --enable-cross-compile --target-os=darwin --cpu=i386"
-        EXTRA_CFLAGS="-arch i386"
-        EXTRA_LDFLAGS="-I${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer/SDKs/${PLATFORM}${SDKVERSION}.sdk/usr/lib -mfpu=neon"
+		# skip compile
+		COMPILE=
 	else
-		PLATFORM="iPhoneOS"
-        EXTRA_CONFIG="--arch=arm --target-os=darwin --enable-cross-compile --cpu=cortex-a9"
-        EXTRA_CFLAGS="-w -arch ${ARCH} -mfpu=neon"
-        EXTRA_LDFLAGS="-mfpu=neon"
+		ARCHS="$*"
+		if [ $# -eq 1 ]
+		then
+			# skip lipo
+			LIPO=
+		fi
 	fi
+fi
 
-	mkdir -p "${INTERDIR}/${ARCH}"
+set -e
+#make distclean || true
+#
+#if [ "$COMPILE" ]
+#then
+#	CWD=`pwd`
+#	for ARCH in $ARCHS
+#	do
+#		echo "building $ARCH..."
+#		mkdir -p "$SCRATCH/$ARCH"
+#		cd "$SCRATCH/$ARCH"
+#
+#		if [ "$ARCH" = "i386" -o "$ARCH" = "x86_64" ]
+#		then
+#		    PLATFORM="iPhoneSimulator"
+#		    CPU=
+#		    if [ "$ARCH" = "x86_64" ]
+#		    then
+#		    	SIMULATOR="-mios-simulator-version-min=7.0"
+#		    else
+#		    	SIMULATOR="-mios-simulator-version-min=5.0"
+#		    fi
+#		else
+#		    PLATFORM="iPhoneOS"
+#		    if [ $ARCH = "armv7s" ]
+#		    then
+#		    	CPU="--cpu=swift"
+#		    else
+#		    	CPU=
+#		    fi
+#            if [ $ARCH = "arm64" ]
+#            then
+#                DISABLE_ASM="--disable-asm"
+#            else
+#                DISABLE_ASM=
+#            fi
+#		    SIMULATOR=
+#		fi
+#
+#		XCRUN_SDK=`echo $PLATFORM | tr '[:upper:]' '[:lower:]'`
+#		CC="xcrun -sdk $XCRUN_SDK clang"
+#		CFLAGS="-arch $ARCH $SIMULATOR"
+#		CXXFLAGS="$CFLAGS"
+#		LDFLAGS="$CFLAGS"
+#
+#		$CWD/$SOURCE/configure \
+#		    --target-os=darwin \
+#		    --arch=$ARCH \
+#		    --cc="$CC" \
+#		    $CONFIGURE_FLAGS \
+#		    --extra-cflags="$CFLAGS" \
+#		    --extra-cxxflags="$CXXFLAGS" \
+#		    --extra-ldflags="$LDFLAGS" \
+#		    $CPU \
+#            $DISABLE_ASM \
+#		    --prefix="$THIN/$ARCH"
+#
+#		make -j3 install
+#		cd $CWD
+#	done
+#fi
+#
+#if [ "$LIPO" ]
+#then
+#	echo "building fat binaries..."
+#	mkdir -p $FAT/lib
+#	set - $ARCHS
+#	CWD=`pwd`
+#	cd $THIN/$1/lib
+#	for LIB in *.a
+#	do
+#		cd $CWD
+#		lipo -create `find $THIN -name $LIB` -output $FAT/lib/$LIB
+#	done
+#
+#	cd $CWD
+#	cp -rf $THIN/$1/include $FAT
+#fi
 
-    make distclean || true
+echo "Copying build results to main repo..."
+OUTPUTDIR="../ffmpeg.build"
 
-    ./configure --prefix="${INTERDIR}/${ARCH}" $FFMPEG_CONFIG --sysroot="${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer/SDKs/${PLATFORM}${SDKVERSION}.sdk" --cc="${DEVELOPER}/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang" --as='/usr/local/bin/gas-preprocessor.pl' --extra-cflags="${EXTRA_CFLAGS} -miphoneos-version-min=${SDKVERSION} -I${OUTPUTDIR}/include" --extra-ldflags="-arch ${ARCH} ${EXTRA_LDFLAGS} -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/${PLATFORM}.platform/Developer/SDKs/${PLATFORM}${SDKVERSION}.sdk -miphoneos-version-min=${SDKVERSION} -L${OUTPUTDIR}/lib" ${EXTRA_CONFIG} --enable-pic --extra-cxxflags="$CPPFLAGS -I${OUTPUTDIR}/include -isysroot ${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer/SDKs/${PLATFORM}${SDKVERSION}.sdk"
+cp -a $FAT/lib/* $OUTPUTDIR/lib/
 
-    make -j4 && make install && cp config.h "${INTERDIR}/${ARCH}/include/" && make clean
-	 
-done
-
-mkdir -p "${INTERDIR}/universal/lib"
-
-cd "${INTERDIR}/armv7/lib"
-for file in *.a
+for ARCH in $ARCHS
 do
-
-cd "${ABSREPOROOT}/${INTERDIR}"
-xcrun -sdk iphoneos lipo -output universal/lib/$file  -create -arch armv7 armv7/lib/$file -arch armv7s armv7s/lib/$file -arch i386 i386/lib/$file
-echo "Universal $file created."
-
+    mkdir -p $OUTPUTDIR/include/$ARCH
+    cp -a ${THIN}/$ARCH/include/* $OUTPUTDIR/include/$ARCH/
+    cp -a ${SCRATCH}/$ARCH/config.h $OUTPUTDIR/include/$ARCH/
 done
-cd "$ABSREPOROOT"
 
-cp -a ${INTERDIR}/universal/lib $OUTPUTDIR/
-mkdir -p $OUTPUTDIR/include/i386
-cp -a ${INTERDIR}/i386/include/* $OUTPUTDIR/include/i386/
-mkdir -p $OUTPUTDIR/include/armv7
-cp -a ${INTERDIR}/armv7/include/* $OUTPUTDIR/include/armv7/
-mkdir -p $OUTPUTDIR/include/armv7s
-cp -a ${INTERDIR}/armv7s/include/* $OUTPUTDIR/include/armv7s/
-
-echo "Done."

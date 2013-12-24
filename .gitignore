@@ -61,3 +61,6 @@
 /build
 /installed
 /tags
+/fat
+/thin
+/scratch
