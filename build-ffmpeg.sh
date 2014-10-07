@@ -37,7 +37,7 @@ CONFIGURE_FLAGS=" \
     --enable-pic \
 "
 
-ARCHS="armv7 armv7s i386 arm64 x86_64"
+ARCHS="armv7 arm64 i386 x86_64"
 
 # directories
 SOURCE="."
@@ -67,86 +67,86 @@ then
 fi
 
 set -e
-#make distclean || true
-#
-#if [ "$COMPILE" ]
-#then
-#	CWD=`pwd`
-#	for ARCH in $ARCHS
-#	do
-#		echo "building $ARCH..."
-#		mkdir -p "$SCRATCH/$ARCH"
-#		cd "$SCRATCH/$ARCH"
-#
-#		if [ "$ARCH" = "i386" -o "$ARCH" = "x86_64" ]
-#		then
-#		    PLATFORM="iPhoneSimulator"
-#		    CPU=
-#		    if [ "$ARCH" = "x86_64" ]
-#		    then
-#		    	SIMULATOR="-mios-simulator-version-min=7.0"
-#		    else
-#		    	SIMULATOR="-mios-simulator-version-min=5.0"
-#		    fi
-#		else
-#		    PLATFORM="iPhoneOS"
-#		    if [ $ARCH = "armv7s" ]
-#		    then
-#		    	CPU="--cpu=swift"
-#		    else
-#		    	CPU=
-#		    fi
-#            if [ $ARCH = "arm64" ]
-#            then
-#                DISABLE_ASM="--disable-asm"
-#            else
-#                DISABLE_ASM=
-#            fi
-#		    SIMULATOR=
-#		fi
-#
-#		XCRUN_SDK=`echo $PLATFORM | tr '[:upper:]' '[:lower:]'`
-#		CC="xcrun -sdk $XCRUN_SDK clang"
-#		CFLAGS="-arch $ARCH $SIMULATOR"
-#		CXXFLAGS="$CFLAGS"
-#		LDFLAGS="$CFLAGS"
-#
-#		$CWD/$SOURCE/configure \
-#		    --target-os=darwin \
-#		    --arch=$ARCH \
-#		    --cc="$CC" \
-#		    $CONFIGURE_FLAGS \
-#		    --extra-cflags="$CFLAGS" \
-#		    --extra-cxxflags="$CXXFLAGS" \
-#		    --extra-ldflags="$LDFLAGS" \
-#		    $CPU \
-#            $DISABLE_ASM \
-#		    --prefix="$THIN/$ARCH"
-#
-#		make -j3 install
-#		cd $CWD
-#	done
-#fi
-#
-#if [ "$LIPO" ]
-#then
-#	echo "building fat binaries..."
-#	mkdir -p $FAT/lib
-#	set - $ARCHS
-#	CWD=`pwd`
-#	cd $THIN/$1/lib
-#	for LIB in *.a
-#	do
-#		cd $CWD
-#		lipo -create `find $THIN -name $LIB` -output $FAT/lib/$LIB
-#	done
-#
-#	cd $CWD
-#	cp -rf $THIN/$1/include $FAT
-#fi
+make distclean || true
+
+if [ "$COMPILE" ]
+then
+	CWD=`pwd`
+	for ARCH in $ARCHS
+	do
+		echo "building $ARCH..."
+		mkdir -p "$SCRATCH/$ARCH"
+		cd "$SCRATCH/$ARCH"
+
+		if [ "$ARCH" = "i386" -o "$ARCH" = "x86_64" ]
+		then
+		    PLATFORM="iPhoneSimulator"
+		    CPU=
+		    if [ "$ARCH" = "x86_64" ]
+		    then
+		    	SIMULATOR="-mios-simulator-version-min=7.0"
+		    else
+		    	SIMULATOR="-mios-simulator-version-min=5.0"
+		    fi
+		else
+		    PLATFORM="iPhoneOS"
+		    if [ $ARCH = "armv7s" ]
+		    then
+		    	CPU="--cpu=swift"
+		    else
+		    	CPU=
+		    fi
+            if [ $ARCH = "arm64" ]
+            then
+                DISABLE_ASM="--disable-asm"
+            else
+                DISABLE_ASM=
+            fi
+		    SIMULATOR=
+		fi
+
+		XCRUN_SDK=`echo $PLATFORM | tr '[:upper:]' '[:lower:]'`
+		CC="xcrun -sdk $XCRUN_SDK clang"
+		CFLAGS="-arch $ARCH $SIMULATOR"
+		CXXFLAGS="$CFLAGS"
+		LDFLAGS="$CFLAGS"
+
+		$CWD/$SOURCE/configure \
+		    --target-os=darwin \
+		    --arch=$ARCH \
+		    --cc="$CC" \
+		    $CONFIGURE_FLAGS \
+		    --extra-cflags="$CFLAGS" \
+		    --extra-cxxflags="$CXXFLAGS" \
+		    --extra-ldflags="$LDFLAGS" \
+		    $CPU \
+            $DISABLE_ASM \
+		    --prefix="$THIN/$ARCH"
+
+		make -j3 install
+		cd $CWD
+	done
+fi
+
+if [ "$LIPO" ]
+then
+	echo "building fat binaries..."
+	mkdir -p $FAT/lib
+	set - $ARCHS
+	CWD=`pwd`
+	cd $THIN/$1/lib
+	for LIB in *.a
+	do
+		cd $CWD
+		lipo -create `find $THIN -name $LIB` -output $FAT/lib/$LIB
+	done
+
+	cd $CWD
+	cp -rf $THIN/$1/include $FAT
+fi
 
 echo "Copying build results to main repo..."
-OUTPUTDIR="../ffmpeg.build"
+OUTPUTDIR="../FFmpeg.build"
 
 cp -a $FAT/lib/* $OUTPUTDIR/lib/
 
