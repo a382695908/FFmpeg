@@ -148,12 +148,15 @@ fi
 echo "Copying build results to main repo..."
 OUTPUTDIR="../FFmpeg.build"
 
+echo cp -a $FAT/lib/* $OUTPUTDIR/lib/
 cp -a $FAT/lib/* $OUTPUTDIR/lib/
 
 for ARCH in $ARCHS
 do
     mkdir -p $OUTPUTDIR/include/$ARCH
+    echo cp -a ${THIN}/$ARCH/include/* $OUTPUTDIR/include/$ARCH/
     cp -a ${THIN}/$ARCH/include/* $OUTPUTDIR/include/$ARCH/
+    echo cp -a ${SCRATCH}/$ARCH/config.h $OUTPUTDIR/include/$ARCH/
     cp -a ${SCRATCH}/$ARCH/config.h $OUTPUTDIR/include/$ARCH/
 done
 
