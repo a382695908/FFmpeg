@@ -3254,6 +3254,7 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         atom.size = INT64_MAX;
     while (total_size + 8 <= atom.size && !avio_feof(pb)) {
         int (*parse)(MOVContext*, AVIOContext*, MOVAtom) = NULL;
+        int64_t position_before_reading = avio_tell(pb);
         a.size = atom.size;
         a.type=0;
         if (atom.size >= 8) {
@@ -3290,6 +3291,16 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         }
         av_dlog(c->fc, "type: %08x '%.4s' parent:'%.4s' sz: %"PRId64" %"PRId64" %"PRId64"\n",
                 a.type, (char*)&a.type, (char*)&atom.type, a.size, total_size, atom.size);
+        // Incomplete mov file being written and read at the same time has
+        // reached the last incomplete mdat. Need to repeat reading until
+        // mdat is complete.
+        if (atom.type == MKTAG('r','o','o','t') && atom.size == INT64_MAX &&
+            a.type == MKTAG('m','d','a','t') && a.size == 0) {
+            avio_flush(pb);
+            c->next_root_atom = position_before_reading;
+            usleep(100000); // wait 100ms before repeating attempt
+            return 0;
+        }
         if (a.size == 0) {
             a.size = atom.size - total_size + 8;
         }
@@ -3636,19 +3647,23 @@ static int mov_read_header(AVFormatContext *s)
         atom.size = INT64_MAX;
 
     /* check MOV header */
+moov_retry:
     do {
-    if (mov->moov_retry)
-        avio_seek(pb, 0, SEEK_SET);
-    if ((err = mov_read_default(mov, pb, atom)) < 0) {
-        av_log(s, AV_LOG_ERROR, "error reading header\n");
-        mov_read_close(s);
-        return err;
-    }
+        if (mov->moov_retry)
+            avio_seek(pb, 0, SEEK_SET);
+        if ((err = mov_read_default(mov, pb, atom)) < 0) {
+            av_log(s, AV_LOG_ERROR, "error reading header\n");
+            mov_read_close(s);
+            return err;
+        }
     } while (pb->seekable && !mov->found_moov && !mov->moov_retry++);
     if (!mov->found_moov) {
+        // MOOV can be not found in incomplete file if it has not been written
+        // yet. Repeat attempt.
+        mov->moov_retry = -1;
         av_log(s, AV_LOG_ERROR, "moov atom not found\n");
-        mov_read_close(s);
-        return AVERROR_INVALIDDATA;
+        usleep(100000);
+        goto moov_retry;
     }
     av_dlog(mov->fc, "on_parse_exit_offset=%"PRId64"\n", avio_tell(pb));
 
